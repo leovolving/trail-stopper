@@ -15,6 +15,7 @@ const symbols = [
     'GKOS',
     'GMAB',
     'IEP',
+    'LAZ',
     'LX',
     'MOMO',
     'MRVL',
