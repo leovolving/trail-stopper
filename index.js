@@ -8,6 +8,7 @@ const s3Bucket = process.env.S3_BUCKET;
 const s3Key = 'highs.json';
 const s3Type = 'application/json';
 const symbols = [
+    'ACC',
     'CVS',
     'DRVD',
     'EPD',
@@ -24,7 +25,6 @@ const symbols = [
     'NVCR',
     'PFPT',
     'PYPL',
-    'SPG',
     'VRTX',
     'ZTO',
     'GDX',
@@ -43,11 +43,13 @@ const getStockPriceQuotes = async () => {
     }
     const requestOptions = { oauth, url, json: true };
 
-    return request(requestOptions).then(processQuotes);
+    return request(requestOptions).then(processQuotes).catch(logError);
 };
 
+const logError = e => console.error(e.message);
+
 const processQuotes = async res => {
-    currentHighPrices = await getPrices().then(r => JSON.parse(r.Body.toString()));
+    currentHighPrices = await getPrices().then(r => JSON.parse(r.Body.toString())).catch(logError);
     const quotes = res.response.quotes.quote;
 
     const newHighs = quotes.reduce((highs, q) => {
@@ -100,3 +102,5 @@ const sendAlert = async symbol => {
 }
 
 exports.handler = async () => getStockPriceQuotes();
+
+getStockPriceQuotes();
