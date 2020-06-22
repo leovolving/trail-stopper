@@ -10,7 +10,6 @@ const s3Type = 'application/json';
 const symbols = [
     'ACC',
     'CVS',
-    'DRVD',
     'EPD',
     'ET',
     'GKOS',
@@ -30,7 +29,8 @@ const symbols = [
     'GDX',
     'SMFG',
     'VEON',
-    'DIS'
+    'DIS',
+    'Z'
 ];
 
 const getStockPriceQuotes = async () => {
