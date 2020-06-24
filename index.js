@@ -102,5 +102,3 @@ const sendAlert = async symbol => {
 }
 
 exports.handler = async () => getStockPriceQuotes();
-
-getStockPriceQuotes();
