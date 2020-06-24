@@ -34,7 +34,7 @@ const symbols = [
 ];
 
 const getStockPriceQuotes = async () => {
-    const url = `https://api.tradeking.com/v1/market/ext/quotes.json?fids=hi,lo,name,symbol&symbols=${symbols.join(',')}`;
+    const url = `https://api.tradeking.com/v1/market/ext/quotes.json?fids=last,hi,lo,name,symbol&symbols=${symbols.join(',')}`;
     const oauth = {
         consumer_key: process.env.CONSUMER_KEY,
         consumer_secret: process.env.CONSUMER_SECRET,
