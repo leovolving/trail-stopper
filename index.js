@@ -11,7 +11,6 @@ const symbols = [
     'ACC',
     'CVS',
     'EPD',
-    'ET',
     'GKOS',
     'GMAB',
     'IEP',
