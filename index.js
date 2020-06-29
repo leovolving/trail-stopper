@@ -20,6 +20,7 @@ const symbols = [
     'MRVL',
     'MYOK',
     'NEO',
+    'NEP',
     'NVCR',
     'PFPT',
     'PYPL',
