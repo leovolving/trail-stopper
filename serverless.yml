@@ -30,11 +30,11 @@ functions:
     events:
       - schedule: cron(50 19 ? * MON-FRI *)
     environment:
-      - ACCESS_TOKEN_KEY: $(param:ACCESS_TOKEN_KEY)
-      - ACCESS_TOKEN_SECRET: $(param:ACCESS_TOKEN_SECRET)
-      - CONSUMER_KEY: $(param:CONSUMER_KEY)
-      - CONSUMER_SECRET: $(param:CONSUMER_SECRET)
-      - S3_BUCKET: $(param:S3_BUCKET)
-      - STOCKS: $(param:STOCKS)
-      - TOPIC_ARN: $(param:TOPIC_ARN)
+      ACCESS_TOKEN_KEY: ${param:ACCESS_TOKEN_KEY}
+      ACCESS_TOKEN_SECRET: ${param:ACCESS_TOKEN_SECRET}
+      CONSUMER_KEY: ${param:CONSUMER_KEY}
+      CONSUMER_SECRET: ${param:CONSUMER_SECRET}
+      S3_BUCKET: ${param:S3_BUCKET}
+      STOCKS: ${param:STOCKS}
+      TOPIC_ARN: ${param:TOPIC_ARN}
 
