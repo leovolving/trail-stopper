@@ -30,4 +30,12 @@ functions:
     handler: index.handler
     events:
       - schedule: cron(50 19 ? * MON-FRI *)
+    environment:
+      - ACCESS_TOKEN_KEY: $(ACCESS_TOKEN_KEY)
+      - ACCESS_TOKEN_SECRET: $(ACCESS_TOKEN_SECRET)
+      - CONSUMER_KEY: $(CONSUMER_KEY)
+      - CONSUMER_SECRET: $(CONSUMER_SECRET)
+      - S3_BUCKET: $(S3_BUCKET)
+      - STOCKS: $(STOCKS)
+      - TOPIC_ARN: $(TOPIC_ARN)
 
