@@ -7,31 +7,22 @@ const s3 = new AWS.S3();
 const s3Bucket = process.env.S3_BUCKET;
 const s3Key = 'highs.json';
 const s3Type = 'application/json';
-const symbols = [
-    'ACC',
-    'CVS',
-    'EPD',
-    'GKOS',
-    'GMAB',
-    'IEP',
-    'LAZ',
-    'LX',
-    'MOMO',
-    'MRVL',
-    'MYOK',
-    'NEO',
-    'NEP',
-    'NVCR',
-    'PFPT',
-    'PYPL',
-    'VRTX',
-    'ZTO',
-    'GDX',
-    'SMFG',
-    'VEON',
-    'DIS',
-    'Z'
-];
+const symbols = process.env.STOCKS.split(',');
+
+const analyzeLow = async (symbol, low) => {
+    const high = currentHighPrices[symbol];
+    const loss = ((low-high)/high)*100;
+    console.log('loss for ', symbol, ': ', loss);
+    if (loss <= -25) sendAlert(symbol);
+}
+
+const getS3Highs = async () => {
+    const params = {
+        Bucket: s3Bucket,
+        Key: s3Key
+    };
+    return await s3.getObject(params).promise();
+}
 
 const getStockPriceQuotes = async () => {
     const url = `https://api.tradeking.com/v1/market/ext/quotes.json?fids=last,hi,lo,name,symbol&symbols=${symbols.join(',')}`;
@@ -49,7 +40,7 @@ const getStockPriceQuotes = async () => {
 const logError = e => console.error(e.message);
 
 const processQuotes = async res => {
-    currentHighPrices = await getPrices().then(r => JSON.parse(r.Body.toString())).catch(logError);
+    currentHighPrices = await getS3Highs().then(r => JSON.parse(r.Body.toString())).catch(logError);
     const quotes = res.response.quotes.quote;
 
     const newHighs = quotes.reduce((highs, q) => {
@@ -67,38 +58,23 @@ const processQuotes = async res => {
     await sendNewHighsToS3(newHighs);
 }
 
-const getPrices = async () => {
-    const params = {
-        Bucket: s3Bucket,
-        Key: s3Key
-    };
-    return await s3.getObject(params).promise();
-}
-
-const sendNewHighsToS3 = async highs => {
-    if (!Object.keys(highs).length) return;
-    const destparams = {
-        Bucket: s3Bucket,
-        Key: s3Key,
-        Body: JSON.stringify(highs),
-        ContentType: s3Type
-    };
-    await s3.putObject(destparams).promise();
-}
-
-const analyzeLow = async (symbol, low) => {
-    const high = currentHighPrices[symbol];
-    const loss = ((low-high)/high)*100;
-    console.log('loss for ', symbol, ': ', loss);
-    if (loss <= -25) sendAlert(symbol);
-}
-
 const sendAlert = async symbol => {
     const params = {
         Message: `SELL ALERT! Sell ${symbol}`,
         TopicArn: process.env.TOPIC_ARN
     };
     await sns.publish(params).promise();
+}
+
+const sendNewHighsToS3 = async highs => {
+    if (!Object.keys(highs).length) return;
+    const params = {
+        Bucket: s3Bucket,
+        Key: s3Key,
+        Body: JSON.stringify(highs),
+        ContentType: s3Type
+    };
+    await s3.putObject(params).promise();
 }
 
 exports.handler = async () => getStockPriceQuotes();
