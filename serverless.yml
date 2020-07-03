@@ -1,0 +1,33 @@
+service: trailstopper
+# app and org for use with dashboard.serverless.com
+app: trailstopper-app
+org: leoyockey
+
+provider:
+  name: aws
+  runtime: nodejs12.x
+  region: us-west-2
+
+iamRoleStatements:
+   - Effect: "Allow"
+     Action:
+       - "s3:ListBucket"
+     Resource: { "Fn::Join" : ["", ["arn:aws:s3:::", { "Ref" : "mbc-stocks" } ] ]  }
+   - Effect: "Allow"
+     Action:
+       - "s3:PutObject"
+     Resource:
+       Fn::Join:
+         - ""
+         - - "arn:aws:s3:::"
+           - "Ref" : "mbc-stocks"
+           - "/*"
+environment:
+  SLS_DEBUG: "*"
+
+functions:
+  trailStopper:
+    handler: index.handler
+    events:
+      - schedule: cron(50 19 ? * MON-FRI *)
+

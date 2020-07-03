@@ -3,3 +3,7 @@ node_modules
 Archive.zip
 highs.json
 .DS_Store
+jspm_packages
+
+# Serverless directories
+.serverless
