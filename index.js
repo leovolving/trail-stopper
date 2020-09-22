@@ -46,7 +46,7 @@ const processQuotes = async res => {
     const newHighs = quotes.reduce((highs, q) => {
         console.log('q', q);
         const {hi, lo, symbol} = q;
-        if (hi > highs[symbol]) {
+        if (!highs[symbol] || hi > highs[symbol]) {
             console.log(`in hi for ${symbol}`);
             highs[symbol] = hi;
         } else {
