@@ -112,5 +112,3 @@ const sendNewHighs = async (highs) => getAuth()
     });
 
 exports.handler = async () => getAuth(getConfig);
-
-getAuth(getConfig);
