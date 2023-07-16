@@ -1,9 +1,11 @@
-const fetch = require("node-fetch");
+const request = require("request-promise-native");
 const AWS = require("aws-sdk");
+const twilio = require("twilio");
 
 AWS.config.update({ region: "us-west-2" });
-const symbols = process.env.STOCKS;
+// TODO: get highs.json from s3
 const highs = {};
+const symbols = process.env.STOCKS;
 
 const isStopLoss = async (symbol, low) => {
   const high = highs[symbol];
@@ -14,25 +16,23 @@ const isStopLoss = async (symbol, low) => {
 
 const getStockPriceQuotes = async () => {
   const url = `https://api.tradeking.com/v1/market/ext/quotes.json?fids=last,hi,lo,name,symbol&symbols=${symbols}`;
-  // TODO: fix OAuth 1.0 request settings
   const oauth = {
     consumer_key: process.env.CONSUMER_KEY,
     consumer_secret: process.env.CONSUMER_SECRET,
-    access_token: process.env.ACCESS_TOKEN_KEY,
+    token: process.env.ACCESS_TOKEN_KEY,
     token_secret: process.env.ACCESS_TOKEN_SECRET,
   };
-  const requestOptions = { oauth, method: "GET" };
+  const requestOptions = { oauth, url, json: true };
 
-  return fetch(url, requestOptions).then(processQuotes).catch(logError);
+  // TODO: find Oauth 1.0-friendly alternative to request
+  return request(requestOptions).then(processQuotes).catch(logError);
 };
 
 const logError = (e) => console.error(e.message);
 
 const generateHighsAndLosses = (acc, q) => {
-  console.log("q", q);
   const { hi, lo, symbol } = q;
   if (!acc.highs[symbol] || hi > acc.highs[symbol]) {
-    console.log(`in hi for ${symbol}`);
     acc.highs[symbol] = hi;
   } else if (isStopLoss(symbol, lo)) {
     acc.stopLosses.push(symbol);
@@ -41,10 +41,7 @@ const generateHighsAndLosses = (acc, q) => {
 };
 
 const processQuotes = async (res) => {
-  console.log(res.status);
-  const json = await res.text();
-  console.log(JSON.parse(json));
-  const quotes = res.body.quotes.quote;
+  const quotes = res.response.quotes.quote;
 
   const highsAndLosses = quotes.reduce(generateHighsAndLosses, {
     highs,
@@ -57,7 +54,16 @@ const processQuotes = async (res) => {
 
 const sendAlert = async (symbols) => {
   if (!symbols.length) return;
-  // TODO: send text via Twilio
+
+  const accountSid = process.env.TWILIO_ACCOUNT_SID;
+  const authToken = process.env.TWILIO_AUTH_TOKEN;
+  const client = twilio(accountSid, authToken);
+
+  client.messages.create({
+    from: process.env.TWILIO_PHONE_NUMBER,
+    body: `Sell alert! ${symbols.join(", ")}`,
+    to: process.env.CLIENT_PHONE_NUMBER,
+  });
 };
 
 exports.handler = async () => getStockPriceQuotes();

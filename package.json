@@ -12,6 +12,8 @@
   "dependencies": {
     "aws-sdk": "^2.759.0",
     "dotenv": "^8.2.0",
-    "node-fetch": "^2.6.12"
+    "request": "^2.88.2",
+    "request-promise-native": "^1.0.9",
+    "twilio": "^4.14.0"
   }
 }
