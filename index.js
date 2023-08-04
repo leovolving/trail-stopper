@@ -1,42 +1,15 @@
 const request = require("request-promise-native");
-const AWS = require("aws-sdk");
-const twilio = require("twilio");
+const fs = require("fs");
+const highs = require("./highs.json");
 
-AWS.config.update({ region: "us-west-2" });
-const s3 = new AWS.S3();
-
-const s3Bucket = process.env.S3_BUCKET;
-const s3Key = "highs.json";
-const s3Type = "application/json";
-const symbols = process.env.STOCKS;
-
-const getS3Highs = async () => {
-  const params = {
-    Bucket: s3Bucket,
-    Key: s3Key,
-  };
-  return await s3.getObject(params).promise();
-};
-
-const sendNewHighsToS3 = async (highs) => {
-  if (!Object.keys(highs).length) return;
-  const params = {
-    Bucket: s3Bucket,
-    Key: s3Key,
-    Body: JSON.stringify(highs),
-    ContentType: s3Type,
-  };
-  await s3.putObject(params).promise();
-};
-
-const isStopLoss = async (symbol, low, highs) => {
+const isStopLoss = (symbol, low) => {
   const high = highs[symbol];
   const loss = ((low - high) / high) * 100;
-  console.log("loss for ", symbol, ": ", loss);
   return loss <= -25 && loss > -100;
 };
 
 const getStockPriceQuotes = async () => {
+  const symbols = process.env.STOCKS;
   const url = `https://api.tradeking.com/v1/market/ext/quotes.json?fids=last,hi,lo,name,symbol&symbols=${symbols}`;
   const oauth = {
     consumer_key: process.env.CONSUMER_KEY,
@@ -52,12 +25,18 @@ const getStockPriceQuotes = async () => {
 
 const logError = (e) => console.error(e.message);
 
+const updateHighs = (newHighs) => {
+  fs.writeFile("./highs.json", JSON.stringify(newHighs), "utf8", (err) => {
+    if (err) return console.error(err);
+  });
+};
+
 const generateHighsAndLosses = (acc, q) => {
   const { hi, lo, symbol } = q;
   if (!acc.highs[symbol] || hi > acc.highs[symbol]) {
     console.log(`in high for ${symbol}: ${hi}`);
     acc.highs[symbol] = hi;
-  } else if (isStopLoss(symbol, lo, acc.highs)) {
+  } else if (isStopLoss(symbol, lo)) {
     acc.stopLosses.push(symbol);
   }
   return acc;
@@ -65,32 +44,20 @@ const generateHighsAndLosses = (acc, q) => {
 
 const processQuotes = async (res) => {
   const quotes = res.response.quotes.quote;
-  const currentHighs = await getS3Highs();
 
   const highsAndLosses = quotes.reduce(generateHighsAndLosses, {
-    highs: currentHighs,
+    highs,
     stopLosses: [],
   });
 
-  sendNewHighsToS3(highsAndLosses.highs);
+  updateHighs(highsAndLosses.highs);
   sendAlert(highsAndLosses.stopLosses);
 };
 
 const sendAlert = async (symbols) => {
   if (!symbols.length) return;
   const symbolsString = symbols.join(", ");
-  console.log(`stop losses for ${symbolsString}`);
-
-  const accountSid = process.env.TWILIO_ACCOUNT_SID;
-  const authToken = process.env.TWILIO_AUTH_TOKEN;
-  const client = twilio(accountSid, authToken);
-
-  client.messages.create({
-    from: process.env.TWILIO_PHONE_NUMBER,
-    body: `Sell alert! ${symbolsString}`,
-    to: process.env.CLIENT_PHONE_NUMBER,
-  });
+  console.error(`stop losses for ${symbolsString}`);
 };
 
-exports.handler = async () => getStockPriceQuotes();
 getStockPriceQuotes();

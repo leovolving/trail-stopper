@@ -10,10 +10,8 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "aws-sdk": "^2.759.0",
     "dotenv": "^8.2.0",
     "request": "^2.88.2",
-    "request-promise-native": "^1.0.9",
-    "twilio": "^4.14.0"
+    "request-promise-native": "^1.0.9"
   }
 }

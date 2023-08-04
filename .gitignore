@@ -4,6 +4,7 @@ Archive.zip
 highs.json
 .DS_Store
 jspm_packages
+highs.json
 
 # Serverless directories
 .serverless
