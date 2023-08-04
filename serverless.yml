@@ -8,19 +8,19 @@ provider:
   region: us-west-2
 
 iamRoleStatements:
-   - Effect: "Allow"
-     Action:
-       - "s3:ListBucket"
-     Resource: { "Fn::Join" : ["", ["arn:aws:s3:::", { "Ref" : "mbc-stocks" } ] ]  }
-   - Effect: "Allow"
-     Action:
-       - "s3:PutObject"
-     Resource:
-       Fn::Join:
-         - ""
-         - - "arn:aws:s3:::"
-           - "Ref" : "mbc-stocks"
-           - "/*"
+  - Effect: "Allow"
+    Action:
+      - "s3:ListBucket"
+    Resource: { "Fn::Join": ["", ["arn:aws:s3:::", { "Ref": "mbc-stocks" }]] }
+  - Effect: "Allow"
+    Action:
+      - "s3:PutObject"
+    Resource:
+      Fn::Join:
+        - ""
+        - - "arn:aws:s3:::"
+          - "Ref": "mbc-stocks"
+          - "/*"
 environment:
   SLS_DEBUG: "*"
 
@@ -37,4 +37,3 @@ functions:
       S3_BUCKET: ${param:S3_BUCKET}
       STOCKS: ${param:STOCKS}
       TOPIC_ARN: ${param:TOPIC_ARN}
-
