@@ -9,18 +9,16 @@ const isStopLoss = (symbol, low) => {
 };
 
 const getStockPriceQuotes = async () => {
-  const symbols = process.env.STOCKS;
-  const url = `https://api.tradeking.com/v1/market/ext/quotes.json?fids=last,hi,lo,name,symbol&symbols=${symbols}`;
-  const oauth = {
-    consumer_key: process.env.CONSUMER_KEY,
-    consumer_secret: process.env.CONSUMER_SECRET,
-    token: process.env.ACCESS_TOKEN_KEY,
-    token_secret: process.env.ACCESS_TOKEN_SECRET,
-  };
-  const requestOptions = { oauth, url, json: true };
+  const symbols = process.env.STOCKS.split(",");
 
-  // TODO: find Oauth 1.0-friendly alternative to request
-  return request(requestOptions).then(processQuotes).catch(logError);
+  const allQuotes = symbols.map((symbol) => {
+    const url = `https://finnhub.io/api/v1/quote?symbol=${symbol}&token=${process.env.API_KEY}`;
+    const requestOptions = { url, json: true };
+    // TODO: replace request with http
+    return request(requestOptions).then((res) => ({ ...res, symbol }));
+  });
+
+  return Promise.all(allQuotes).then(processQuotes).catch(logError);
 };
 
 const logError = (e) => console.error(e.message);
@@ -32,7 +30,7 @@ const updateHighs = (newHighs) => {
 };
 
 const generateHighsAndLosses = (acc, q) => {
-  const { hi, lo, symbol } = q;
+  const { h: hi, l: lo, symbol } = q;
   if (!acc.highs[symbol] || hi > acc.highs[symbol]) {
     console.log(`in high for ${symbol}: ${hi}`);
     acc.highs[symbol] = hi;
@@ -42,9 +40,7 @@ const generateHighsAndLosses = (acc, q) => {
   return acc;
 };
 
-const processQuotes = async (res) => {
-  const quotes = res.response.quotes.quote;
-
+const processQuotes = async (quotes) => {
   const highsAndLosses = quotes.reduce(generateHighsAndLosses, {
     highs,
     stopLosses: [],
