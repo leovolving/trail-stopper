@@ -1,5 +1,6 @@
-const request = require("request-promise-native");
 const fs = require("fs");
+const https = require("https");
+
 const highs = require("./highs.json");
 
 const generateHighsAndLosses = (acc, q) => {
@@ -13,14 +14,34 @@ const generateHighsAndLosses = (acc, q) => {
   return acc;
 };
 
+const getHttpsRequest = (url) => {
+  return new Promise((resolve, reject) => {
+    https
+      .get(url, (resp) => {
+        let data = "";
+
+        // A chunk of data has been received.
+        resp.on("data", (chunk) => {
+          data += chunk;
+        });
+
+        // The whole response has been received.
+        resp.on("end", () => {
+          resolve(JSON.parse(data));
+        });
+      })
+      .on("error", (err) => {
+        reject(err.message);
+      });
+  });
+};
+
 const getStockPriceQuotes = async () => {
   const symbols = process.env.STOCKS.split(",");
 
   const allQuotes = symbols.map((symbol) => {
     const url = `https://finnhub.io/api/v1/quote?symbol=${symbol}&token=${process.env.API_KEY}`;
-    const requestOptions = { url, json: true };
-    // TODO: replace request with http
-    return request(requestOptions).then((res) => ({ ...res, symbol }));
+    return getHttpsRequest(url).then((res) => ({ ...res, symbol }));
   });
 
   return Promise.all(allQuotes).then(processQuotes).catch(logError);
