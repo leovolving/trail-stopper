@@ -3,11 +3,11 @@ const fs = require("fs");
 const highs = require("./highs.json");
 
 const generateHighsAndLosses = (acc, q) => {
-  const { h: hi, l: lo, symbol } = q;
-  if (!acc.highs[symbol] || hi > acc.highs[symbol]) {
-    console.log(`in high for ${symbol}: ${hi}`);
-    acc.highs[symbol] = hi;
-  } else if (isStopLoss(symbol, lo)) {
+  const { h, l, symbol } = q;
+  if (!acc.highs[symbol] || h > acc.highs[symbol]) {
+    console.log(`in high for ${symbol}: ${h}`);
+    acc.highs[symbol] = h;
+  } else if (isStopLoss(symbol, l)) {
     acc.stopLosses.push(symbol);
   }
   return acc;
