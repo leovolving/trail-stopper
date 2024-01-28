@@ -50,7 +50,8 @@ const getStockPriceQuotes = async () => {
 const isStopLoss = (symbol, low) => {
   const high = highs[symbol];
   const loss = ((low - high) / high) * 100;
-  return loss <= -25 && loss > -100;
+  const stop = process.env.TRAILING_STOP || 25;
+  return loss <= -stop && loss > -100;
 };
 
 const logError = (e) => console.error(e.message);
