@@ -37,7 +37,7 @@ const getHttpsRequest = (url) => {
 };
 
 const getStockPriceQuotes = async () => {
-  const symbols = process.env.STOCKS.split(",");
+  const symbols = process.env.SYMBOLS.split(",");
 
   const allQuotes = symbols.map((symbol) => {
     const url = `https://finnhub.io/api/v1/quote?symbol=${symbol}&token=${process.env.API_KEY}`;
