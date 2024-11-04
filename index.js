@@ -36,7 +36,19 @@ const getHttpsRequest = (url) => {
   });
 };
 
+const isClosedForHoliday = async () => {
+  const url = `https://finnhub.io/api/v1/stock/market-status?exchange=US&token=${process.env.API_KEY}`;
+  const { holiday } = await getHttpsRequest(url);
+  console.log(holiday);
+  return !!holiday && !holiday.tradingHour;
+};
+
 const getStockPriceQuotes = async () => {
+  if (await isClosedForHoliday()) {
+    console.log("Closed for holiday");
+    return;
+  }
+
   const symbols = process.env.SYMBOLS.split(",");
 
   const allQuotes = symbols.map((symbol) => {
