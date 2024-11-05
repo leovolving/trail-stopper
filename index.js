@@ -8,6 +8,7 @@ const generateHighsAndLosses = (acc, q) => {
   if (!acc.highs[symbol] || h > acc.highs[symbol]) {
     console.log(`in high for ${symbol}: ${h}`);
     acc.highs[symbol] = h;
+    acc.newHighs.push(symbol);
   } else if (isStopLoss(symbol, l)) {
     acc.stopLosses.push(symbol);
   }
@@ -36,13 +37,6 @@ const getHttpsRequest = (url) => {
   });
 };
 
-const isClosedForHoliday = async () => {
-  const url = `https://finnhub.io/api/v1/stock/market-status?exchange=US&token=${process.env.API_KEY}`;
-  const { holiday } = await getHttpsRequest(url);
-  console.log(holiday);
-  return !!holiday && !holiday.tradingHour;
-};
-
 const getStockPriceQuotes = async () => {
   if (await isClosedForHoliday()) {
     console.log("Closed for holiday");
@@ -59,6 +53,17 @@ const getStockPriceQuotes = async () => {
   return Promise.all(allQuotes).then(processQuotes).catch(logError);
 };
 
+const getSymbolsString = (symbols) => {
+  return symbols.length > 0 ? symbols.join(", ") : "none";
+};
+
+const isClosedForHoliday = async () => {
+  const url = `https://finnhub.io/api/v1/stock/market-status?exchange=US&token=${process.env.API_KEY}`;
+  const { holiday } = await getHttpsRequest(url);
+  console.log(holiday);
+  return !!holiday && !holiday.tradingHour;
+};
+
 const isStopLoss = (symbol, low) => {
   const high = highs[symbol];
   const loss = ((low - high) / high) * 100;
@@ -71,21 +76,28 @@ const logError = (e) => console.error(e.message);
 const processQuotes = async (quotes) => {
   const highsAndLosses = quotes.reduce(generateHighsAndLosses, {
     highs,
+    newHighs: [],
     stopLosses: [],
   });
 
   updateHighs(highsAndLosses.highs);
   sendAlert(highsAndLosses.stopLosses);
+
+  const newHighsString = getSymbolsString(highsAndLosses.newHighs);
+  const stopLossesString = getSymbolsString(highsAndLosses.stopLosses);
+  const summaryMessage = `Trail Stopper\nNew highs: ${newHighsString};\nStop losses: ${stopLossesString}`;
+  console.log(summaryMessage);
 };
 
 const sendAlert = async (symbols) => {
   if (!symbols.length) return;
-  const symbolsString = symbols.join(", ");
+  const symbolsString = getSymbolsString(symbols);
   console.error(`stop losses for ${symbolsString}`);
 };
 
-const updateHighs = (newHighs) => {
-  fs.writeFile("./highs.json", JSON.stringify(newHighs), "utf8", (err) => {
+const updateHighs = (allHighsUpdated) => {
+  const allHighsUpdatedString = JSON.stringify(allHighsUpdated);
+  fs.writeFile("./highs.json", allHighsUpdatedString, "utf8", (err) => {
     if (err) return console.error(err);
   });
 };
