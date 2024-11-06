@@ -86,7 +86,10 @@ const processQuotes = async (quotes) => {
   const newHighsString = getSymbolsString(highsAndLosses.newHighs);
   const stopLossesString = getSymbolsString(highsAndLosses.stopLosses);
   const summaryMessage = `Trail Stopper\nNew highs: ${newHighsString};\nStop losses: ${stopLossesString}`;
-  console.log(summaryMessage);
+
+  if (!!(process.env.TEXTBELT_PHONE && process.env.TEXTBELT_KEY)) {
+    await sendTextMessage(summaryMessage);
+  }
 };
 
 const sendAlert = async (symbols) => {
@@ -95,11 +98,65 @@ const sendAlert = async (symbols) => {
   console.error(`stop losses for ${symbolsString}`);
 };
 
+const sendTextMessage = async (message) => {
+  const options = {
+    hostname: "textbelt.com",
+    path: "/text",
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+  };
+
+  const textMessage = () =>
+    new Promise((resolve, reject) => {
+      const req = https.request(options, (resp) => {
+        let data = "";
+        resp.on("data", (chunk) => {
+          data += chunk;
+        });
+        resp.on("end", () => {
+          resolve(JSON.parse(data));
+        });
+      });
+
+      req.on("error", (err) => {
+        reject(err.message);
+      });
+
+      const data = JSON.stringify({
+        message,
+        phone: process.env.TEXTBELT_PHONE,
+        key: process.env.TEXTBELT_KEY,
+      });
+      req.write(data);
+      req.end();
+    });
+
+  return textMessage().then(verifyTextsRemaining).catch(console.error);
+};
+
 const updateHighs = (allHighsUpdated) => {
   const allHighsUpdatedString = JSON.stringify(allHighsUpdated);
   fs.writeFile("./highs.json", allHighsUpdatedString, "utf8", (err) => {
     if (err) return console.error(err);
   });
+};
+
+const verifyTextsRemaining = async (res) => {
+  if (!res.success) {
+    console.error(res.error);
+    return sendTextMessage(
+      "Textbelt failed to send a text. This is likely because there are only 10 texts remaining. Visit the Textbelt website to resolve"
+    );
+  }
+
+  console.log("texts remaining: ", res.quotaRemaining);
+  if (res.quotaRemaining === 11) {
+    await sendTextMessage(
+      "10 text messages remaining. Renew at https://textbelt.com/purchase/ with key stored in 1Password Secure Note"
+    );
+  }
 };
 
 getStockPriceQuotes();
