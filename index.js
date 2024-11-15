@@ -1,7 +1,16 @@
 const fs = require("fs");
 const https = require("https");
+const {
+  S3Client,
+  GetObjectCommand,
+  PutObjectCommand,
+} = require("@aws-sdk/client-s3");
 
-const highs = require("./highs.json");
+const s3Bucket = process.env.S3_BUCKET;
+const s3Key = "highs.json";
+const s3Type = "application/json";
+
+const client = new S3Client({ region: "us-west-2" });
 
 const generateHighsAndLosses = (acc, q) => {
   const { h, l, symbol } = q;
@@ -9,7 +18,7 @@ const generateHighsAndLosses = (acc, q) => {
     console.log(`in high for ${symbol}: ${h}`);
     acc.highs[symbol] = h;
     acc.newHighs.push(symbol);
-  } else if (isStopLoss(symbol, l)) {
+  } else if (isStopLoss(symbol, l, acc.highs)) {
     acc.stopLosses.push(symbol);
   }
   return acc;
@@ -64,8 +73,8 @@ const isClosedForHoliday = async () => {
   return !!holiday && !holiday.tradingHour;
 };
 
-const isStopLoss = (symbol, low) => {
-  const high = highs[symbol];
+const isStopLoss = (symbol, low, currentHighs) => {
+  const high = currentHighs[symbol];
   const loss = ((low - high) / high) * 100;
   const stop = process.env.TRAILING_STOP || 25;
   return loss <= -stop && loss > -100;
@@ -74,13 +83,24 @@ const isStopLoss = (symbol, low) => {
 const logError = (e) => console.error(e.message);
 
 const processQuotes = async (quotes) => {
+  // get highs
+  const params = {
+    Bucket: s3Bucket,
+    Key: s3Key,
+    ContentType: s3Type,
+  };
+  const command = new GetObjectCommand(params);
+  const data = await client.send(command);
+  const highs = JSON.parse(await data.Body.transformToString());
+
   const highsAndLosses = quotes.reduce(generateHighsAndLosses, {
     highs,
     newHighs: [],
     stopLosses: [],
   });
 
-  updateHighs(highsAndLosses.highs);
+  // updateHighs(highsAndLosses.highs);
+  sendNewHighsToS3(highsAndLosses.highs);
   sendAlert(highsAndLosses.stopLosses);
 
   const newHighsString = getSymbolsString(highsAndLosses.newHighs);
@@ -96,6 +116,18 @@ const sendAlert = async (symbols) => {
   if (!symbols.length) return;
   const symbolsString = getSymbolsString(symbols);
   console.error(`stop losses for ${symbolsString}`);
+};
+
+const sendNewHighsToS3 = async (newHighs) => {
+  if (!Object.keys(newHighs).length) return;
+  const params = {
+    Bucket: s3Bucket,
+    Key: s3Key,
+    Body: JSON.stringify(newHighs),
+    ContentType: s3Type,
+  };
+  const command = new PutObjectCommand(params);
+  await client.send(command);
 };
 
 const sendTextMessage = async (message) => {
