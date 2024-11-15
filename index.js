@@ -191,4 +191,5 @@ const verifyTextsRemaining = async (res) => {
   }
 };
 
+exports.handler = async () => getStockPriceQuotes();
 getStockPriceQuotes();
